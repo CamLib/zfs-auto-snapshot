@@ -361,7 +361,7 @@ then
 	SNAPSHOTS_OLD=$(env LC_ALL=C zfs list -H -t snapshot -o com.sun:auto-snapshot-label,name -s name|grep $opt_prefix |awk '{ print substr( $0, length($0) - 14, length($0) ) " " $0}' |sort -r -k1,1 -k3,2|awk '{ print substr( $0, 17, length($0) )}') \
 	  || { print_log error "zfs list $?: $SNAPSHOTS_OLD"; exit 137; }
 else
-	SNAPSHOTS_OLD=$(env LC_ALL=C zfs list -H -t snapshot -S creation -o com.sun:auto-snapshot-label,name) \
+	SNAPSHOTS_OLD=$(env LC_ALL=C zfs list -H -t snapshot -S creation -o com.sun:auto-snapshot-label,name | grep $opt_prefix ) \
 	  || { print_log error "zfs list $?: $SNAPSHOTS_OLD"; exit 137; }
 fi
 
