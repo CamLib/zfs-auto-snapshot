@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/local/bin/bash
 
 # zfs-auto-snapshot for Linux
 # Automatically create, rotate, and destroy periodic ZFS snapshots.
@@ -17,6 +17,10 @@
 # You should have received a copy of the GNU General Public License along with
 # this program; if not, write to the Free Software Foundation, Inc., 59 Temple
 # Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# This version has been modified for use at the Cambridge University Library.
+# In particular, it has been adapted to work under FreeBSD.
+#
 #
 
 # Set the field separator to a literal tab and newline.
@@ -39,6 +43,8 @@ opt_setauto=''
 opt_syslog=''
 opt_skip_scrub=''
 opt_verbose=''
+# On FreeBSD we don't use gnu getopt by default.
+ggetopt=/usr/local/bin/getopt
 
 # Global summary statistics.
 DESTRUCTION_COUNT='0'
@@ -199,7 +205,7 @@ do_snapshots () # properties, flags, snapname, oldglob, [targets...]
 # main ()
 # {
 
-GETOPT=$(getopt \
+GETOPT=$(${ggetopt} \
   --longoptions=default-exclude,dry-run,fast,skip-scrub,recursive \
   --longoptions=event:,keep:,label:,prefix:,sep: \
   --longoptions=debug,help,quiet,syslog,verbose \
@@ -509,7 +515,8 @@ SNAPPROP="-o com.sun:auto-snapshot-desc='$opt_event' -o com.sun:auto-snapshot-la
 
 # ISO style date; fifteen characters: YYYY-MM-DD-HHMM
 # On Solaris %H%M expands to 12h34.
-DATE=$(date --utc +%F-%H%M)
+# We use -u rather than --utc since that works on FreeBSD and Linux.
+DATE=$(date -u +%F-%H%M)
 
 # The snapshot name after the @ symbol.
 SNAPNAME="$opt_prefix$opt_sep$DATE"
