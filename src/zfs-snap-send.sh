@@ -37,9 +37,10 @@ verstr=1.0
 sfn=${0##*/} # Short version of our filename
 verb=0
 showhelp=0
-sleeptime=6
-maxit=5
-
+sleeptime=120
+maxit=1000000
+eqeq='==========\n'
+plpl='++++++++++\n'
 #
 # qecho Echoes argument if verbose mode is on.
 # Also writes to logfile.
@@ -134,11 +135,11 @@ find_previous() {
 	# But, we don't, so this will do for now.
 	# Note: Monthly snapshots will send incremental from the most recent monthly.
 	case $snaptype in
-		frequent)	sf='/hourly$/p ; /daily$/p ; /weekly$/p ; /monthly$/p ; /Initial$/p';;
-		hourly)		sf='/daily$/p ; /weekly$/p ; /monthly$/p ; /Initial$/p';;
-		daily)		sf='/weekly$/p ; /monthly$/p ; /Initial$/p';;
-		weekly)		sf='/monthly$/p ; /Initial$/p';;
-		monthly)	sf='/monthly$/p ; /Initial$/p';;	
+		frequent)	sf='/hourly$/p ; /daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p';;
+		hourly)		sf='/daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p';;
+		daily)		sf='/weekly$/p ; /monthly$/p ; /@Initial/p';;
+		weekly)		sf='/monthly$/p ; /@Initial/p';;
+		monthly)	sf='/monthly$/p ; /@Initial/p';;	
 	esac
 	lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zn \
 		| sed -n "/Initial/,/$sn2/p" | sed -e "/$sn2/d" | sed -n "$sf" | tail -1 \
@@ -184,12 +185,13 @@ send_snap() {
 	# uzdir has the forward slashes replaced by undersacores, and the 
 	# trailing underscore (if any) removed.
 	uzdir=`echo $zd2 | sed -e "s/\//_/g" | sed -e "s/_$//"`
-	fn=${uzdir}${lastsnap}_I_$sn2s
+	fn=${uzdir}${lastsnap}_I_${sn2s}_${snaptype}
 	qecho "Send stream will go to $fn\n"
-	$SSH $ruser "mbuffer -q -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " &
-	# We sleep a second to allow mbuffer to start
-	sleep 1
-	$ZFS send -Rv -i $lastsnap $snapn | mbuffer -s 128k -m 1G -O ${snaphost}:9090
+	# We sleep 5 seconds to allow the receive mbuffer to start on $snaphost
+	( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -s 128k -m 1G -O ${snaphost}:9090 ) &
+	# Start the receive mbuffer on $snaphost
+	qecho "Starting receive on $snaphost.\n"
+	$SSH $ruser "mbuffer -q -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " 
 }
 
 #
@@ -206,7 +208,7 @@ do
         z)      snap1="$snap1$OPTARG ";;
         s)      sleeptime=$OPTARG;;
         x)      maxit=$OPTARG;;
-        v)		echo "Found +q" ; verb=1;;
+        v)		verb=1;;
         V)      
                 verb=1
                 verecho
@@ -271,17 +273,20 @@ fi
 k=0
 while [ $k -lt $maxit ]
 do
-	qecho "`$DATE`: Beginning iteration $k of $maxit.\n\n"
+	qecho "$eqeq`$DATE`: Beginning iteration $k of $maxit.\n\n"
 	for zdir1 in $zroot ; do
 		qecho "Considering filesystem $zdir1.\n"
-		# $ZFSAUTOSNAP -k 2 --default-exclude -l timestamp $zdir1
+		qecho "Updating timestamp snapshot for $zdir1.\n"
+		$ZFSAUTOSNAP -q -k 2 --default-exclude -l timestamp $zdir1
 		find_unsent $zdir1
 		for snap2 in $unsent ; do
 			qecho "Looking at snapshot $snap2 ...\n"
-			snap_send $snap2 $zdir1
+			send_snap $snap2 $zdir1
 		done
 	done
+	qecho "Updating timestamp file.\n"
 	$SSH $ruser "touch $received"
+	qecho "$eqeq`$DATE`: End of iteration $k of $maxit.  Sleeping for $sleeptime.\n\n"
 	sleep $sleeptime
     k=$(($k+1))
 done
