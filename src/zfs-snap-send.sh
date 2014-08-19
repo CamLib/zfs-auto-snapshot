@@ -188,10 +188,10 @@ send_snap() {
 	fn=${uzdir}${lastsnap}_I_${sn2s}_${snaptype}
 	qecho "Send stream will go to $fn\n"
 	# We sleep 5 seconds to allow the receive mbuffer to start on $snaphost
-	( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -s 128k -m 1G -O ${snaphost}:9090 ) &
+	( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -H -s 128k -m 1G -O ${snaphost}:9090 ) &
 	# Start the receive mbuffer on $snaphost
 	qecho "Starting receive on $snaphost.\n"
-	$SSH $ruser "mbuffer -q -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " 
+	$SSH $ruser "mbuffer -q -H -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " 
 }
 
 #
