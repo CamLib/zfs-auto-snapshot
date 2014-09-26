@@ -347,9 +347,11 @@ qecho "updated: \t$updated\n"
 qecho "zroot:   \t$zroot\n"
 qecho "backupuser: \t$backupuser\n"
 qecho "ruser: \t$ruser\n"
+qecho "archive: \t$archive\n"
+qecho "incremental: \t$incremental\n"
 
 
-if [ ! -z $zroot ] ; then
+if [ -n $zroot ] ; then
 	qecho "Zfs file system specified, so ignoring any specified snapshot names.\n"
 	snap1=
 else
