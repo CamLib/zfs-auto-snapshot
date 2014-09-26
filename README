@@ -10,6 +10,6 @@ weekly, monthly) are applied as the zfs property
 com.sun:auto-snapshot-label.
 
 This program is a posixly correct bourne shell script.  It depends only on
-the zfs utilities and cron, and can run in the dash shell.  It has been 
+the zfs utilities and cron, and can run in the bash shell.  It has been 
 adapted slightly to run under FreeBSD, but aside from the location of
 bash itself and of getopt, it should work on other systems.

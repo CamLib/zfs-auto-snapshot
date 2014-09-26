@@ -12,7 +12,7 @@
 # to one of frequent, hourly, daily, weekly, monthly.
 #
 # Default action is to send an incremental stream, relative to the most 
-# recent prior snapshot of a higher level.
+# recent prior snapshot of the same or a lower level.
 
 ZFS=/sbin/zfs
 SCP=/usr/bin/scp
@@ -39,6 +39,8 @@ verb=0
 showhelp=0
 sleeptime=120
 maxit=1000000
+archive=
+incremental=0
 eqeq='==========\n'
 plpl='++++++++++\n'
 #
@@ -70,7 +72,7 @@ showusage() {
 verecho
 cat << EOF
 Usage: \
-        $sfn -rkzpdlsxqu
+        $sfn -rkzpdlsxquai
         $sfn -h
         $sfn -v
         
@@ -84,6 +86,8 @@ Most flags require arguments.
            Specify either -z or -p but not both.
         -d snaphost.  e.g. -d stor-snap-02
         -u username on snaphost.  Required for running remote end of mbuffer.
+        -a snaplevel. Send archive stream for snapshots at or below specified level.
+        -i send incremental stream.
         -l Logfile. e.g. -l /var/log/zfssnapsend.log
         -s Loop sleep time, in seconds. e.g. -s 600
         -x Maximum number of iterations. e.g. -x 5
@@ -98,25 +102,34 @@ if [ $showhelp -eq 1 ] ; then
 cat << EOF
 Examples: 
 
-Send the incremental stream for the snapshot 
+1. Send the incremental stream for the snapshot 
 x1/junk@zfs-auto-snap_2014-08-02-0007 to the remote host stor-snap-02, 
 logging to /var/log/zfssnapsend.log
 
-        $sfn -d stor-snap-02 -m /mnt/stor-snap-02 -r /x1/`hostname -s`\\
-        -z x1/junk@zfs-auto-snap_2014-08-02-0007 \\
+        $sfn -d stor-snap-02 -r /x1/`hostname -s`\\
+        -z x1/junk@zfs-auto-snap_2014-08-02-0007 -i \\
         -k `hostname -s` -l /var/log/zfssnapsend.log
-        
+
+2. Send incremental and archival stremas for x1/junk  to the remote host stor-snap-02, 
+logging to /var/log/zfssnapsend.log
+
+        $sfn -d stor-snap-02  -r /x1/`hostname -s`\\
+        -p x1/junk -a daily -i \\
+        -k `hostname -s` -l /var/log/zfssnapsend.log     
 EOF
 
 fi
 }
 
 #
-# find_previous snapname
-# Find the previous snapshot of lower level than the specified one.
+# find_previous_archive snapname
+# For snapshots of level $archive or lower, we find the previous snapshot of the 
+# same or a lower level than the specified snapname.
+# For snapshots of levels above $archive, we return an empty string.
 # The result is left in the variable $lastsnap.
+# 
 #
-find_previous() {
+find_previous_archive() {
 	lastsnap=
 	sn=$1
 	if [ -z $sn ] ; then
@@ -129,22 +142,65 @@ find_previous() {
 	zn=`echo $sn | sed -e 's/@.*//'`
 	# Find the snapshot label for $sn
 	snaptype=`$ZFS list -o com.sun:auto-snapshot-label -H $sn`
-	# Construct a sed filter to consider only higher level snapshots.
+	# Verify that $snaptype is of level $archive or lower.
+	# If it is not, return (with lastsnap empty from above).
+	snaptypes='Initial monthly weekly daily hourly frequent'
+	# There are two sed commands.  The first replaces everything in the list of snaptypes
+	# with just things up to the specified archive level.  The second looks for the current 
+	# snaptype in this reduced list.  If it exists, it is returned as our string. 
+	# If $archive is empty, the first command (and so the second) returns the empty string.
+	if [ -z `echo $snaptypes | sed -n "s/$archive.*/$archive/ ; s/.*$snaptype.*/$snaptype/p"` ] ; then
+		qecho "Warning: Archive level of $archive is lower than current snapshot of level $snaptype."	
+		return
+	fi
+
+	# Construct a sed filter to consider only lower level snapshots.
 	# This would be greatly simplified if we used numbers rather than text labels.
 	# E.g. we could work in the way of dump etc., level 0, level 1 etc.
 	# But, we don't, so this will do for now.
 	# Note: Monthly snapshots will send incremental from the most recent monthly.
 	case $snaptype in
-		frequent)	sf='/hourly$/p ; /daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p';;
-		hourly)		sf='/daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p';;
-		daily)		sf='/weekly$/p ; /monthly$/p ; /@Initial/p';;
-		weekly)		sf='/monthly$/p ; /@Initial/p';;
+		frequent)	sf='/frequent$/p ; /hourly$/p ; /daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p';;
+		hourly)		sf='/hourly$/p ; /daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p';;
+		daily)		sf='/daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p';;
+		weekly)		sf='/weekly$/p ; /monthly$/p ; /@Initial/p';;
 		monthly)	sf='/monthly$/p ; /@Initial/p';;	
 	esac
 	lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zn \
 		| sed -n "/Initial/,/$sn2/p" | sed -e "/$sn2/d" | sed -n "$sf" | tail -1 \
 		| cut -f 1 -w | sed -e 's/.*@/@/' `
 }
+
+#
+# find_previous_incremental snapname
+# Find the previous snapshot of any level, to use as the basis for an incremental stream.
+# The result is left in the variable $lastsnap.
+# 
+#
+find_previous_incremental() {
+	lastsnap=
+	sn=$1
+	if [ -z $sn ] ; then
+		qecho "Warning: no snapshot specified to find_previous.\n"
+		return
+	fi
+	# sn2 has forward slashes replaced by full stops, so we don't break sed.
+	sn2=`echo $sn | sed -e 's@/@.@g'`
+	# zn is the zfs filesytem name, taken as everything before the @.
+	zn=`echo $sn | sed -e 's/@.*//'`
+	# Find the snapshot label for $sn
+	snaptype=`$ZFS list -o com.sun:auto-snapshot-label -H $sn`
+	if [ $incremental -gt 0 ] ; then
+		sf='/frequent$/p ; /hourly$/p ; /daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p'
+		lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zn \
+			| sed -n "/Initial/,/$sn2/p" | sed -e "/$sn2/d" | sed -n "$sf" | tail -1 \
+			| cut -f 1 -w | sed -e 's/.*@/@/' `
+	else
+		# We are not doing incrementals.
+		return
+	fi
+}
+
 
 #
 # find_unsent zdir
@@ -173,31 +229,66 @@ send_snap() {
 		zd2=`echo $snapn | sed -e 's/@.*//'`
 		qecho "Warning: no zdir specified to send_snap, so using derived name of $zd2.\n"
 	fi
-	find_previous $snapn
-	if [ -z $lastsnap ] ; then
-		qecho "Warning: No previous snapshot found for $snapn.\n"
-		qecho "This will require manual intervention to fix.\n"
-		break
+	#
+	# Send an archival incremental.  These are intended to be retained for a long time.
+	#
+	if [ -n $archive ] ; then
+		find_previous_archive $snapn
+		if [ -z $lastsnap ] ; then
+			qecho "Warning: No previous archive snapshot found for $snapn.\n"
+			qecho "This will require manual intervention to fix.\n"
+			break
+		else
+			sn2s=`echo $snapn | sed -e 's/.*@/@/'`
+			qecho "Labelled as $snaptype ...\n"
+			qecho "Lastsnap is $lastsnap.\n"
+			# uzdir has the forward slashes replaced by undersacores, and the 
+			# trailing underscore (if any) removed.
+			uzdir=`echo $zd2 | sed -e "s/\//_/g" | sed -e "s/_$//"`
+			fn=${uzdir}${lastsnap}_I_${sn2s}_${snaptype}
+			qecho "Send stream will go to $fn\n"
+			# We sleep 5 seconds to allow the receive mbuffer to start on $snaphost
+			( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -H -s 128k -m 1G -O ${snaphost}:9090 ) &
+			# Start the receive mbuffer on $snaphost
+			qecho "Starting receive on $snaphost.\n"
+			$SSH $ruser "mbuffer -q -H -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " 
+		fi
 	fi
-	sn2s=`echo $snapn | sed -e 's/.*@/@/'`
-	qecho "Labelled as $snaptype ...\n"
-	qecho "Lastsnap is $lastsnap.\n"
-	# uzdir has the forward slashes replaced by undersacores, and the 
-	# trailing underscore (if any) removed.
-	uzdir=`echo $zd2 | sed -e "s/\//_/g" | sed -e "s/_$//"`
-	fn=${uzdir}${lastsnap}_I_${sn2s}_${snaptype}
-	qecho "Send stream will go to $fn\n"
-	# We sleep 5 seconds to allow the receive mbuffer to start on $snaphost
-	( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -H -s 128k -m 1G -O ${snaphost}:9090 ) &
-	# Start the receive mbuffer on $snaphost
-	qecho "Starting receive on $snaphost.\n"
-	$SSH $ruser "mbuffer -q -H -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " 
+	#
+	# Send a standard incremental.  These are intended for (near) immediate replay into
+	# a remote backup file system.
+	#
+	if [ $incremental -gt 0 ] ; then
+		find_previous_incremental $snapn
+		if [ -z $lastsnap ] ; then
+			qecho "Warning: No previous incremental snapshot found for $snapn.\n"
+			qecho "This will require manual intervention to fix.\n"
+			break
+		else
+			sn2s=`echo $snapn | sed -e 's/.*@/@/'`
+			qecho "Labelled as $snaptype ...\n"
+			qecho "Lastsnap is $lastsnap.\n"
+			# uzdir has the forward slashes replaced by undersacores, and the 
+			# trailing underscore (if any) removed.
+			uzdir=`echo $zd2 | sed -e "s/\//_/g" | sed -e "s/_$//"`
+			fn=${uzdir}${lastsnap}_i_${sn2s}_${snaptype}
+			qecho "Send stream will go to $fn\n"
+			# We sleep 5 seconds to allow the receive mbuffer to start on $snaphost
+			( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -H -s 128k -m 1G -O ${snaphost}:9090 ) &
+			# Start the receive mbuffer on $snaphost
+			qecho "Starting receive on $snaphost.\n"
+			$SSH $ruser "mbuffer -q -H -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " 
+		fi
+	fi
+
+
 }
+
 
 #
 # Parse command line arguments
 #
-while getopts r:z:p:l:s:x:d:k:vVhq c
+while getopts r:z:p:l:s:x:d:k:a:vVhqi c
 do
         case $c in
         l)      logfile=$OPTARG;;
@@ -208,16 +299,20 @@ do
         z)      snap1="$snap1$OPTARG ";;
         s)      sleeptime=$OPTARG;;
         x)      maxit=$OPTARG;;
+		a)		archive=$OPTARG;;
+		i)		incremental=1;;
         v)		verb=1;;
         V)      
                 verb=1
                 verecho
                 exit 1;;
         h)      
+				verb=1
                 showhelp=1
                 showusage
                 exit 1;;
         \?)     
+                verb=1
                 showusage
                 exit 1;;
         esac
@@ -257,13 +352,12 @@ qecho "ruser: \t$ruser\n"
 if [ ! -z $zroot ] ; then
 	qecho "Zfs file system specified, so ignoring any specified snapshot names.\n"
 	snap1=
+else
+	for snap in $snap1 ; do 
+		qecho "Working on snapshot $snap1\n"
+		send_snap $snap
+	done
 fi
-
-
-for snap in $snap1 ; do 
-	qecho "Working on snapshot $snap1\n"
-	send_snap $snap
-done
 
 if [ -z $zroot ] ; then
 	qecho "No zfs file system specified, so exiting now.\n"
