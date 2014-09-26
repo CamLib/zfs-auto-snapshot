@@ -82,9 +82,11 @@ Most flags require arguments.
         -k timestampfile. e.g. -k `hostname -s`
         -z zfs snapshot to send. e.g. -z filesystemname@zfs-auto-snap_YYYY-MM-DD-HHMM
            The -z argument may be specified multiple times.
-        -p root zfs filesystem e.g. zbackup/clones/
            Specify either -z or -p but not both.
-        -d snaphost.  e.g. -d stor-snap-02
+        -p root zfs filesystem e.g. zbackup/clones/
+           The -p argument may be specified multiple times.
+           Specify either -z or -p but not both.
+       -d snaphost.  e.g. -d stor-snap-02
         -u username on snaphost.  Required for running remote end of mbuffer.
         -a snaplevel. Send archive stream for snapshots at or below specified level.
         -i send incremental stream.
@@ -291,7 +293,7 @@ do
         l)      logfile=$OPTARG;;
         r)      snapdir=$OPTARG;;
         k)      timestamp=$OPTARG;;
-        p)      zroot=$OPTARG;;
+        p)      zroot="$zroot$OPTARG ";;
 		d)		snaphost=$OPTARG;;
         z)      snap1="$snap1$OPTARG ";;
         s)      sleeptime=$OPTARG;;
