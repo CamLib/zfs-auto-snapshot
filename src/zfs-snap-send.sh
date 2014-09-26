@@ -150,7 +150,7 @@ find_previous_archive() {
 	# snaptype in this reduced list.  If it exists, it is returned as our string. 
 	# If $archive is empty, the first command (and so the second) returns the empty string.
 	if [ -z `echo $snaptypes | sed -n "s/$archive.*/$archive/ ; s/.*$snaptype.*/$snaptype/p"` ] ; then
-		qecho "Warning: Archive level of $archive is lower than current snapshot of level $snaptype."	
+		qecho "Warning: Archive level of $archive is lower than current snapshot of level $snaptype.\n"	
 		return
 	fi
 
@@ -236,8 +236,6 @@ send_snap() {
 		find_previous_archive $snapn
 		if [ -z $lastsnap ] ; then
 			qecho "Warning: No previous archive snapshot found for $snapn.\n"
-			qecho "This will require manual intervention to fix.\n"
-			break
 		else
 			sn2s=`echo $snapn | sed -e 's/.*@/@/'`
 			qecho "Labelled as $snaptype ...\n"
@@ -263,7 +261,6 @@ send_snap() {
 		if [ -z $lastsnap ] ; then
 			qecho "Warning: No previous incremental snapshot found for $snapn.\n"
 			qecho "This will require manual intervention to fix.\n"
-			break
 		else
 			sn2s=`echo $snapn | sed -e 's/.*@/@/'`
 			qecho "Labelled as $snaptype ...\n"
