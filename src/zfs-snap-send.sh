@@ -232,7 +232,7 @@ send_snap() {
 	#
 	# Send an archival incremental.  These are intended to be retained for a long time.
 	#
-	if [ -n $archive ] ; then
+	if [ -n "$archive" ] ; then
 		find_previous_archive $snapn
 		if [ -z $lastsnap ] ; then
 			qecho "Warning: No previous archive snapshot found for $snapn.\n"
@@ -351,7 +351,7 @@ qecho "archive: \t$archive\n"
 qecho "incremental: \t$incremental\n"
 
 
-if [ -n $zroot ] ; then
+if [ -n "$zroot" ] ; then
 	qecho "Zfs file system specified, so ignoring any specified snapshot names.\n"
 	snap1=
 else
