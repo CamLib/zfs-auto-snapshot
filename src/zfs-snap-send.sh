@@ -41,6 +41,7 @@ sleeptime=120
 maxit=1000000
 archive=
 incremental=0
+sendall=0
 eqeq='==========\n'
 plpl='++++++++++\n'
 #
@@ -86,7 +87,8 @@ Most flags require arguments.
         -p root zfs filesystem e.g. zbackup/clones/
            The -p argument may be specified multiple times.
            Specify either -z or -p but not both.
-       -d snaphost.  e.g. -d stor-snap-02
+        -A send all snapshots.  Use in conjunction with -p to prime the snaphost.
+		-d snaphost.  e.g. -d stor-snap-02
         -u username on snaphost.  Required for running remote end of mbuffer.
         -a snaplevel. Send archive stream for snapshots at or below specified level.
         -i send incremental stream.
@@ -217,6 +219,18 @@ find_unsent() {
 }
 
 #
+# find_all_unsent zdir
+# Find all snapshots, sent or otherwise.  Excludes timestamps and those not labelled
+# with com.sun:auto-snapshot-label.
+#
+find_unsent() {
+	# zd1 should be a simple zfs filesystem name, e.g. x1/tsdspace
+	zd1=$1
+	unsent=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zd1 \
+	| sed -e '/timestamp$/d ; /-$/d' | cut -f 1 -w `
+}
+
+#
 # send_snap snapname
 # Send the specified snapshot to $snaphost 
 #
@@ -287,7 +301,7 @@ send_snap() {
 #
 # Parse command line arguments
 #
-while getopts r:z:p:l:s:x:d:k:a:vVhqi c
+while getopts r:z:p:l:s:x:d:k:a:vVhqiA c
 do
         case $c in
         l)      logfile=$OPTARG;;
@@ -300,6 +314,7 @@ do
         x)      maxit=$OPTARG;;
 		a)		archive=$OPTARG;;
 		i)		incremental=1;;
+		A)		sendall=1;;
         v)		verb=1;;
         V)      
                 verb=1
@@ -348,6 +363,7 @@ qecho "backupuser: \t$backupuser\n"
 qecho "ruser: \t$ruser\n"
 qecho "archive: \t$archive\n"
 qecho "incremental: \t$incremental\n"
+qecho "sendall: \t$sendall\n"
 
 
 if [ -n "$zroot" ] ; then
@@ -363,6 +379,24 @@ fi
 if [ -z $zroot ] ; then
 	qecho "No zfs file system specified, so exiting now.\n"
 	exit 0
+fi
+
+if [ $sendall -eq 1 ] ; then
+	qecho "$eqeq`$DATE`: Sendall flag specified.  Sending all snapshots.\n"
+	for zdir1 in $zroot ; do
+		qecho "Considering filesystem $zdir1.\n"
+		qecho "Updating timestamp snapshot for $zdir1.\n"
+		$ZFSAUTOSNAP -q -k 2 --default-exclude -l timestamp $zdir1
+		find_all_unsent $zdir1
+		for snap2 in $unsent ; do
+			qecho "Looking at snapshot $snap2 ...\n"
+			send_snap $snap2 $zdir1
+		done
+	done
+	qecho "Updating timestamp file.\n"
+	$SSH $ruser "touch $received"
+	qecho "$eqeq`$DATE`: Sent all snapshots.  Exiting.\n\n"	
+	exit
 fi
 
 k=0
