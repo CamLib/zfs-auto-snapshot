@@ -223,7 +223,7 @@ find_unsent() {
 # Find all snapshots, sent or otherwise.  Excludes timestamps and those not labelled
 # with com.sun:auto-snapshot-label.
 #
-find_unsent() {
+find_all_unsent() {
 	# zd1 should be a simple zfs filesystem name, e.g. x1/tsdspace
 	zd1=$1
 	unsent=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zd1 \
