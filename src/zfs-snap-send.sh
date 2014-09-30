@@ -136,7 +136,7 @@ fi
 find_previous_archive() {
 	lastsnap=
 	sn=$1
-	if [ -z $sn ] ; then
+	if [ -z "$sn" ] ; then
 		qecho "Warning: no snapshot specified to find_previous.\n"
 		return
 	fi
@@ -184,7 +184,7 @@ find_previous_archive() {
 find_previous_incremental() {
 	lastsnap=
 	sn=$1
-	if [ -z $sn ] ; then
+	if [ -z "$sn" ] ; then
 		qecho "Warning: no snapshot specified to find_previous.\n"
 		return
 	fi
@@ -236,12 +236,12 @@ find_all_unsent() {
 #
 send_snap() {
 	snapn=$1
-	if [ -z $snapn ] ; then
+	if [ -z "$snapn" ] ; then
 		qecho "Warning: no snapshot specified to send_snap.\n"
 		return
 	fi
 	zd2=$2
-	if [ -z $zd2 ] ; then
+	if [ -z "$zd2" ] ; then
 		zd2=`echo $snapn | sed -e 's/@.*//'`
 		qecho "Warning: no zdir specified to send_snap, so using derived name of $zd2.\n"
 	fi
@@ -250,7 +250,7 @@ send_snap() {
 	#
 	if [ -n "$archive" ] ; then
 		find_previous_archive $snapn
-		if [ -z $lastsnap ] ; then
+		if [ -z "$lastsnap" ] ; then
 			qecho "Warning: No previous archive snapshot found for $snapn.\n"
 		else
 			sn2s=`echo $snapn | sed -e 's/.*@/@/'`
@@ -274,7 +274,7 @@ send_snap() {
 	#
 	if [ $incremental -gt 0 ] ; then
 		find_previous_incremental $snapn
-		if [ -z $lastsnap ] ; then
+		if [ -z "$lastsnap" ] ; then
 			qecho "Warning: No previous incremental snapshot found for $snapn.\n"
 			qecho "This will require manual intervention to fix.\n"
 		else
@@ -376,7 +376,7 @@ else
 	done
 fi
 
-if [ -z $zroot ] ; then
+if [ -z "$zroot" ] ; then
 	qecho "No zfs file system specified, so exiting now.\n"
 	exit 0
 fi
