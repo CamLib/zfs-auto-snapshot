@@ -143,19 +143,19 @@ verecho
 #
 # Report settings
 #
-qecho "streamdir is $streamdir"
-qecho "zdir1 is $zdir1"
-qecho "sleeptime is $sleeptime"
-qecho "maxit is $maxit"
-qecho "received is $received"
-qecho "zroot is $zroot"
+qecho "streamdir is $streamdir\n"
+qecho "zdir1 is $zdir1\n"
+qecho "sleeptime is $sleeptime\n"
+qecho "maxit is $maxit\n"
+qecho "received is $received\n"
+qecho "zroot is $zroot\n"
 
 k=0
 while [ $k -lt $maxit ]
 do
 	if [[ $received -nt $updated ]];
 	then
-		qecho "`$DATE`: $received is new."
+		qecho "`$DATE`: $received is new.\n"
 		for zdir in $zdir1;
 		do
 			# uzdir has the forward slashes replaced by undersacores, and the 
@@ -167,12 +167,12 @@ do
 			do
 				if [[ $fname -nt $updated  && $fname -ot $received ]];
 				then
-					qecho $fname is new
+					qecho "$fname is new\n"
 					if [ $logfile ] ; then
-						qecho "cat $fname | $ZFSR $szdir" >> $logfile
+						qecho "cat $fname | $ZFSR $szdir\n" >> $logfile
 						cat $fname | $ZFSR $szdir >> $logfile
 					else
-						qecho "cat $fname | $ZFSR $szdir"
+						qecho "cat $fname | $ZFSR $szdir\n"
 						cat $fname | $ZFSR $szdir 
 					fi
 				fi
@@ -180,7 +180,7 @@ do
 		done
 		touch $updated
 	else
-		qecho "`$DATE`: Nothing to do."
+		qecho "`$DATE`: Nothing to do.\n"
 	fi
 	sleep $sleeptime
 	k=$(($k+1))
@@ -188,8 +188,8 @@ done
 
 if [[ ! $k -lt $maxit ]] ;
 then
-	qecho "Maximum iteration count reached."
+	qecho "Maximum iteration count reached.\n"
 fi
 
-qecho "`$DATE`: Exiting."
+qecho "`$DATE`: Exiting.\n"
 
