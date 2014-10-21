@@ -19,7 +19,7 @@ DATE=/bin/date
 zdir1=
 streamdir=/tmpbackup1
 logfile=
-timestamp=`hostname -s`
+timestamp=stor-pri-02
 zroot=
 verstr='1.0'
 #
@@ -125,7 +125,7 @@ do
 done
 
 
-updated=$streamdir/updated
+updated=$streamdir/`hostname -s`
 received=$streamdir/$timestamp
 
 if [ $verb -ne 0 ] ; then
