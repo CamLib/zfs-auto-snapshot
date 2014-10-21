@@ -1,0 +1,100 @@
+.\"
+.\" Man page for zslave.
+.\"
+.\"
+.\"   $Id$
+.\"
+.TH zslave 1 "October 2010" "Tristram Scott" "System Administration Commands" 
+
+.SH NAME
+zslave \-  Watch for and restore zfs send streams from a remote machine.
+
+.SH SYNOPSIS
+.B zslave
+.RB [ " \-rzlsxkqhv " ]
+
+.SH DESCRIPTION
+.P
+Zslave is intended for restoring zfs send streams sent from a remote machine. 
+It is usually run as a service (smf(5)).
+
+.SH OPTIONS
+.P
+Most options require a single argument.
+.TP
+.B \-r rootdir. e.g. \-r /tmpbackup1
+The rootdir must already exist. 
+.TP
+.B \-k timestamp.  e.g. \-k koala
+Timestamp file touched by remote machine when new streams are ready.
+.TP
+.B \-z filesystem. e.g. \-z vbox \-z dbdata2 \-z dblog2 
+The names of the zfs filesystems to be monitored.
+.TP
+.B \-p zfs root. e.g. \-p zbackup/clones 
+The root to be prepended to the local zfs names.
+.TP
+.B \-l logfile.  e.g. \-l /var/tmp/zfsrestore.log
+.TP
+.B \-s sleeptime. e.g. \-s 600
+The time that zslave sleeps between iterations.
+.TP
+.B \-x maxit. e.g. \-x 240
+Number of iterations to perform before exiting.
+.TP
+.B \-q
+Quiet mode.  No comments or progress reports are echoed, except in the case
+of errors.
+.TP
+.B \+q
+Verbose mode.  
+.TP
+.B \-v
+Displays version information and exits.
+.TP
+.B \-h
+Displays usage information and exits.
+
+.SH EXAMPLES .P  Monitor the /tmpbackup1 directory for zfs systems 
+vbox, dbdata2 and  dblog2, logging to /var/tmp/zfsrestore.log, restoring to
+zbackup/clones/vbox, zbackup/clones/dbdata and zbackup/clones/dblog
+
+.RS
+zslave -r /tmpbackup1 -z vbox -z dbdata2 -z dblog2 \\ 
+.br
+-k koala -l /var/tmp/zfsrestore.log -p zbackup/clones/
+.RE
+
+.SH FILES
+.P 
+/$rootdir/update Timestamp file, updated when zslave does some work.
+
+.P 
+/$rootdir/koala Timestamp file, updated when remote machine has uploaded 
+files.
+
+
+.SH BUGS
+.P
+There is little in the way of error checking.
+.P
+The command needs to be invoked by a user with privileges to allow the zfs
+receive command.  It should 
+.I
+not
+be run with setuid root.
+
+.SH SEE ALSO
+.P
+zfs(1), smf(5)
+
+.SH WARNINGS
+.P
+Zslave is implemented as a ksh script.  It should
+.I
+not
+be run as a setuid root script.
+
+.SH AUTHOR
+.P
+tristram.scott@quantmodels.co.uk

@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+#
+#	zslave
+#
+#	Watches for fresh zfs send streams sent from remote machine.
+#	Updates local zfs filesystems to match the remote system.
+#
+#
+#
+#	Tristram Scott
+#	21/10/2014
+
+ZFS=/sbin/zfs
+SCP=/usr/bin/scp
+SSH=/usr/bin/ssh
+DATE=/bin/date
+
+
+zdir1=
+streamdir=/tmpbackup1
+logfile=
+timestamp=`hostname -s`
+zroot=
+verstr='1.0'
+#
+# Shouldn't need to modify below here
+#
+sfn=${0##*/} # Short version of our filename
+verb=0
+showhelp=0
+sleeptime=600
+maxit=10000000
+
+#
+# qecho Echoes argument if verbose mode is on.
+# Also writes to logfile.
+#
+qecho() {
+if [ $verb -ne 0 ] ; then
+printf '%b' "$@"
+fi
+if [ $logfile ] ; then
+printf '%b' "$@"  >> $logfile
+fi
+}
+
+#
+# verecho	Echoes version string.
+#
+verecho() {
+
+qecho "\nThis is $0, $verstr\nStarting at `$DATE`\n"  
+}
+
+#
+# showusage	Command line help message
+#
+showusage() {
+
+verecho
+cat << EOF
+Usage: \
+	$sfn -rkzplsxq
+	$sfn -h
+	$sfn -v
+	
+Most flags require arguments.
+	
+	-r rootdir for dump streams. e.g. -r /tmpbackup1
+	-k timestampfile. e.g. -k koala
+	-z zfs filesystem to restore. e.g. -z vbox -z dbdata2 -z dblog2
+	-p root zfs filesystem e.g. zbackup/clones/
+	-l Logfile. e.g. -l /var/tmp/zfsrestore.log
+	-s Loop sleep time, in seconds. e.g. -s 600
+	-x Maximum number of iterations. e.g. -x 5
+	-q Quiet (default) or verbose
+	-h Show detailed usage.
+	-v Print the version number and then exit.
+	
+EOF
+
+if [ $showhelp -eq 1 ] ; then
+
+cat << EOF
+Examples: 
+
+Monitor the /tmpbackup1 directory for zfs systems vbox, dbdata2 and 
+dblog2, logging to /var/tmp/zfsrestore.log
+
+	$sfn -r /tmpbackup1 -z vbox -z dbdata2 -z dblog2 -l \\
+		/var/tmp/zfsrestore.log
+	
+EOF
+
+fi
+}
+
+#
+# Parse command line arguments
+#
+while getopts r:z:p:l:s:x:k:vhq c
+do
+	case $c in
+	l)	logfile=$OPTARG;;
+	r)	streamdir=$OPTARG;;
+	k)	timestamp=$OPTARG;;
+	p)	zroot=$OPTARG;;
+	z)	zdir1="$zdir1 $OPTARG";;
+	s)	sleeptime=$OPTARG;;
+	x)	maxit=$OPTARG;;
+	q) verb=0;;
+	+q) verb=1;;
+	v)	
+		verb=1
+		verecho
+		exit 1;;
+	h)	
+		showhelp=1
+		showusage
+		exit 1;;
+	\?)	
+		showusage
+		exit 1;;
+	esac
+done
+
+
+updated=$streamdir/updated
+received=$streamdir/$timestamp
+
+if [ $verb -ne 0 ] ; then
+	ZFSR="$ZFS receive -vF -e "
+else
+	ZFSR="$ZFS receive -F -e "
+fi
+
+
+#
+# Announce ourselves
+#
+verecho
+
+#
+# Report settings
+#
+qecho "streamdir is $streamdir"
+qecho "zdir1 is $zdir1"
+qecho "sleeptime is $sleeptime"
+qecho "maxit is $maxit"
+qecho "received is $received"
+qecho "zroot is $zroot"
+
+k=0
+while [ $k -lt $maxit ]
+do
+	if [[ $received -nt $updated ]];
+	then
+		qecho "`$DATE`: $received is new."
+		for zdir in $zdir1;
+		do
+			# uzdir has the forward slashes replaced by undersacores, and the 
+			# trailing underscore (if any) removed.
+			uzdir=`echo $zdir | sed -e "s/\//_/g" | sed -e "s/_$//"`
+			# szdir has the part after the last slash deleted.
+			szdir=`echo $zroot$zdir | sed -e "s/\(.*\)\/\(.*\)/\1/"`
+			for fname in  `ls -rt $streamdir/*$uzdir@*_i_@*`  ;
+			do
+				if [[ $fname -nt $updated  && $fname -ot $received ]];
+				then
+					qecho $fname is new
+					if [ $logfile ] ; then
+						qecho "cat $fname | $ZFSR $szdir" >> $logfile
+						cat $fname | $ZFSR $szdir >> $logfile
+					else
+						qecho "cat $fname | $ZFSR $szdir"
+						cat $fname | $ZFSR $szdir 
+					fi
+				fi
+			done
+		done
+		touch $updated
+	else
+		qecho "`$DATE`: Nothing to do."
+	fi
+	sleep $sleeptime
+	k=$(($k+1))
+done
+
+if [[ ! $k -lt $maxit ]] ;
+then
+	qecho "Maximum iteration count reached."
+fi
+
+qecho "`$DATE`: Exiting."
+
