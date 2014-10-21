@@ -26,7 +26,7 @@ verstr='1.0'
 # Shouldn't need to modify below here
 #
 sfn=${0##*/} # Short version of our filename
-verb=0
+verb=1
 showhelp=0
 sleeptime=600
 maxit=10000000
@@ -73,7 +73,7 @@ Most flags require arguments.
 	-l Logfile. e.g. -l /var/tmp/zfsrestore.log
 	-s Loop sleep time, in seconds. e.g. -s 600
 	-x Maximum number of iterations. e.g. -x 5
-	-q Quiet (default) or verbose
+	-q Quiet 
 	-h Show detailed usage.
 	-v Print the version number and then exit.
 	
@@ -109,7 +109,6 @@ do
 	s)	sleeptime=$OPTARG;;
 	x)	maxit=$OPTARG;;
 	q) verb=0;;
-	+q) verb=1;;
 	v)	
 		verb=1
 		verecho
