@@ -30,6 +30,8 @@ verb=1
 showhelp=0
 sleeptime=600
 maxit=10000000
+eqeq='==========\n'
+plpl='++++++++++\n'
 
 #
 # qecho Echoes argument if verbose mode is on.
@@ -152,17 +154,19 @@ qecho "zroot is $zroot\n"
 k=0
 while [ $k -lt $maxit ]
 do
-	if [[ $received -nt $updated ]];
-	then
-		qecho "`$DATE`: $received is new.\n"
-		for zdir in $zdir1;
-		do
-			# uzdir has the forward slashes replaced by undersacores, and the 
-			# trailing underscore (if any) removed.
-			uzdir=`echo $zdir | sed -e "s/\//_/g" | sed -e "s/_$//"`
-			# szdir has the part after the last slash deleted.
-			szdir=`echo $zroot$zdir | sed -e "s/\(.*\)\/\(.*\)/\1/"`
-			for fname in  `ls -rt $streamdir/*$uzdir@*_i_@*`  ;
+	for zdir in $zdir1;
+	do
+		qecho "$eqeq`$DATE`: Beginning iteration $k of $maxit.\n\n"
+		# uzdir has the forward slashes replaced by undersacores, and the 
+		# trailing underscore (if any) removed.
+		uzdir=`echo $zdir | sed -e "s/\//_/g" | sed -e "s/_$//"`
+		# szdir has the part after the last slash deleted.
+		szdir=`echo $zroot$zdir | sed -e "s/\(.*\)\/\(.*\)/\1/"`
+		if [[ $received -nt ${updated}.${szdir} ]];
+		then
+			qecho "`$DATE`: $received is newer than ${updated}.${szdir}.\n"
+
+			for fname in  `ls -rt $streamdir | grep "$uzdir@.*_i_@"`  ;
 			do
 				if [[ $fname -nt $updated  && $fname -ot $received ]];
 				then
@@ -176,11 +180,12 @@ do
 					fi
 				fi
 			done
-		done
-		touch $updated
-	else
-		qecho "`$DATE`: Nothing to do.\n"
-	fi
+			touch ${updated}.${szdir}
+		else
+			qecho "`$DATE`: Nothing to do for ${zdir}.\n"
+		fi
+	done
+	qecho "$eqeq`$DATE`: End of iteration $k of $maxit.  Sleeping for $sleeptime.\n\n"
 	sleep $sleeptime
 	k=$(($k+1))
 done
