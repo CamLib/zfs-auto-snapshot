@@ -154,21 +154,21 @@ qecho "zroot is $zroot\n"
 k=0
 while [ $k -lt $maxit ]
 do
+	qecho "$eqeq`$DATE`: Beginning iteration $k of $maxit.\n\n"
 	for zdir in $zdir1;
 	do
-		qecho "$eqeq`$DATE`: Beginning iteration $k of $maxit.\n\n"
-		# uzdir has the forward slashes replaced by undersacores, and the 
+		# uzdir has the forward slashes replaced by underscores, and the 
 		# trailing underscore (if any) removed.
 		uzdir=`echo $zdir | sed -e "s/\//_/g" | sed -e "s/_$//"`
 		# szdir has the part after the last slash deleted.
 		szdir=`echo $zroot$zdir | sed -e "s/\(.*\)\/\(.*\)/\1/"`
-		if [[ $received -nt ${updated}.${szdir} ]];
+		if [[ $received -nt ${updated}.${uzdir} ]];
 		then
 			qecho "`$DATE`: $received is newer than ${updated}.${szdir}.\n"
 
 			for fname in  `ls -rt $streamdir | grep "$uzdir@.*_i_@"`  ;
 			do
-				if [[ $fname -nt $updated  && $fname -ot $received ]];
+				if [[ $fname -nt ${updated}.${uzdir}   && $fname -ot $received ]];
 				then
 					qecho "$fname is new\n"
 					if [ $logfile ] ; then
@@ -180,7 +180,7 @@ do
 					fi
 				fi
 			done
-			touch ${updated}.${szdir}
+			touch ${updated}.${uzdir}
 		else
 			qecho "`$DATE`: Nothing to do for ${zdir}.\n"
 		fi
