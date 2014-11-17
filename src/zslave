@@ -164,7 +164,7 @@ do
 		szdir=`echo $zroot$zdir | sed -e "s/\(.*\)\/\(.*\)/\1/"`
 		if [[ $received -nt ${updated}.${uzdir} ]];
 		then
-			qecho "`$DATE`: $received is newer than ${updated}.${szdir}.\n"
+			qecho "`$DATE`: $received is newer than ${updated}.${uzdir}.\n"
 
 			for fname in  `ls -rt $streamdir | grep "$uzdir@.*_i_@"`  ;
 			do
