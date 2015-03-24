@@ -22,6 +22,7 @@ logfile=
 timestamp=stor-pri-02
 zroot=
 verstr='1.0'
+tmpfileroot=/tmp/zslave.$$
 #
 # Shouldn't need to modify below here
 #
@@ -165,8 +166,10 @@ do
 		if [[ $received -nt ${updated}.${uzdir} ]];
 		then
 			qecho "`$DATE`: $received is newer than ${updated}.${uzdir}.\n"
-
-			for fname in  `ls -rt $streamdir | grep "$uzdir@.*_i_@"`  ;
+			# We put the file list into a temporary file, and note the time now.
+			ls -rt $streamdir | grep "$uzdir@.*_i_@" > ${tmpfileroot}.${uzdir}
+			now=`date +%Y-%m-%dT%T`
+			for fname in  `cat ${tmpfileroot}.${uzdir}`  ;
 			do
 				if [[ $fname -nt ${updated}.${uzdir}   && $fname -ot $received ]];
 				then
@@ -180,7 +183,11 @@ do
 					fi
 				fi
 			done
-			touch ${updated}.${uzdir}
+			# We update the timestamp (for this uzdir) with the time that we listed the
+			# files, noted just above the for loop.
+			touch -d ${now} ${updated}.${uzdir}
+			# Tidy up
+			rm ${tmpfileroot}.${uzdir}
 		else
 			qecho "`$DATE`: Nothing to do for ${zdir}.\n"
 		fi
