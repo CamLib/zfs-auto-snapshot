@@ -185,7 +185,7 @@ do
 				qecho "$fname is new\n"
 				if [ $logfile ] ; then
 					qecho "cat ${streamdir}/${fname} | $ZFSR $szdir\n" >> $logfile
-					cat ${streamdir}/{fname} | $ZFSR $szdir >> $logfile
+					cat ${streamdir}/${fname} | $ZFSR $szdir >> $logfile
 				else
 					qecho "cat ${streamdir}/${fname}| $ZFSR $szdir\n"
 					cat ${streamdir}/${fname} | $ZFSR $szdir 
