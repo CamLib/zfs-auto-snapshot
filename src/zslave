@@ -196,9 +196,9 @@ do
 			done
 			# We update the timestamp (for this uzdir) with the time that we listed the
 			# files, noted just above the for loop.
-			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}`"
+			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}` \n"
 			touch -d ${now} ${updated}.${uzdir}
-			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}`"
+			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}`\n"
 			# Tidy up
 			rm ${tmpfileroot}.${uzdir}
 		else
