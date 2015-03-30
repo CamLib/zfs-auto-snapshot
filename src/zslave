@@ -166,37 +166,29 @@ do
 		if [[ $received -nt ${updated}.${uzdir} ]];
 		then
 			qecho "`$DATE`: $received is newer than ${updated}.${uzdir}.\n"
-			qecho "`ls -lD %Y-%m-%dT%T $received ` \n"
-			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}` \n"
 			# We put the file list into a temporary file, and note the time now.
-			ls -rt $streamdir | grep "$uzdir@.*_i_@" > ${tmpfileroot}.${uzdir}
+			# The file list is sorted by date.  The first sed includes all lines
+			# with uzdir and also the two time stamps.  The second sed command
+			# includes only those lines between the two time stamps.
+			ls -rt $streamdir | sed -n \
+				"/${uzdir}@.*_i_@/p ; /^${updated}.${uzdir}$/p ; /^${received}$/p" \
+				| sed -e '1,/^${updated}.${uzdir}$/d ; /^${received}$/,$d' \
+				> ${tmpfileroot}.${uzdir}
 			now=`date +%Y-%m-%dT%T`
+			qecho "Looks like we have `wc -l ${tmpfileroot}.${uzdir}` new streams to apply.\n"
 			for fname in  `cat ${tmpfileroot}.${uzdir}`  ;
 			do
-				if [[ $fname -nt ${updated}.${uzdir}   && $fname -ot $received ]];
-				then
-					qecho "$fname is new\n"
-					if [ $logfile ] ; then
-						qecho "cat $fname | $ZFSR $szdir\n" >> $logfile
-						cat $fname | $ZFSR $szdir >> $logfile
-					else
-						qecho "cat $fname | $ZFSR $szdir\n"
-						cat $fname | $ZFSR $szdir 
-					fi
+				qecho "$fname is new\n"
+				if [ $logfile ] ; then
+					qecho "cat $fname | $ZFSR $szdir\n" >> $logfile
+					cat $fname | $ZFSR $szdir >> $logfile
 				else
-					if [[ ! $fname -nt ${updated}.${uzdir}   ]];
-					then
-						qecho "$fname is not newer than ${updated}.${uzdir}.\n"
-					fi
-					if [[ ! $fname -ot $received   ]];
-					then
-						qecho "$fname is not older than $received.\n"
-					fi
+					qecho "cat $fname | $ZFSR $szdir\n"
+					cat $fname | $ZFSR $szdir 
 				fi
 			done
 			# We update the timestamp (for this uzdir) with the time that we listed the
 			# files, noted just above the for loop.
-			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}` \n"
 			touch -d ${now} ${updated}.${uzdir}
 			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}`\n"
 			# Tidy up
