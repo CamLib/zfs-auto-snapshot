@@ -166,8 +166,8 @@ do
 		if [[ $received -nt ${updated}.${uzdir} ]];
 		then
 			qecho "`$DATE`: $received is newer than ${updated}.${uzdir}.\n"
-			qecho "`ls -lD %Y-%m-%dT%T $received `"
-			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}`"
+			qecho "`ls -lD %Y-%m-%dT%T $received ` \n"
+			qecho "`ls -lD %Y-%m-%dT%T  ${updated}.${uzdir}` \n"
 			# We put the file list into a temporary file, and note the time now.
 			ls -rt $streamdir | grep "$uzdir@.*_i_@" > ${tmpfileroot}.${uzdir}
 			now=`date +%Y-%m-%dT%T`
@@ -186,11 +186,11 @@ do
 				else
 					if [[ ! $fname -nt ${updated}.${uzdir}   ]];
 					then
-						qecho "$fname is not newer than ${updated}.${uzdir}."
+						qecho "$fname is not newer than ${updated}.${uzdir}.\n"
 					fi
 					if [[ ! $fname -ot $received   ]];
 					then
-						qecho "$fname is not older than $received."
+						qecho "$fname is not older than $received.\n"
 					fi
 				fi
 			done
