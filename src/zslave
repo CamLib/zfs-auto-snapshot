@@ -171,8 +171,8 @@ do
 			# with uzdir and also the two time stamps.  The second sed command
 			# includes only those lines between the two time stamps.
 			ls -rt $streamdir | sed -n \
-				"/${uzdir}@.*_i_@/p ; /^${updated}.${uzdir}$/p ; /^${received}$/p" \
-				| sed -e "1,/^${updated}.${uzdir}$/d ; /^${received}$/,$d" \
+				"/${uzdir}@.*_i_@/p ; /^${updated}.${uzdir}$/p ; /^${timestamp}$/p" \
+				| sed -e "1,/^${updated}.${uzdir}$/d ; /^${timestamp}$/,$d" \
 				> ${tmpfileroot}.${uzdir}
 			now=`date +%Y-%m-%dT%T`
 			qecho "Looks like we have `wc -l ${tmpfileroot}.${uzdir}` new streams to apply.\n"
