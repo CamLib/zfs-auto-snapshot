@@ -129,6 +129,9 @@ done
 
 updated=$streamdir/`hostname -s`
 received=$streamdir/$timestamp
+# supdated is just the part after the last /, i.e the hostname from above.
+supdated=`echo "$updated" | sed -e 's/.*\///'`
+
 
 if [ $verb -ne 0 ] ; then
 	ZFSR="$ZFS receive -vF -e "
@@ -171,8 +174,8 @@ do
 			# with uzdir and also the two time stamps.  The second sed command
 			# includes only those lines between the two time stamps.
 			ls -rt $streamdir | sed -n \
-				"/${uzdir}@.*_i_@/p ; /^${updated}.${uzdir}$/p ; /^${timestamp}$/p" \
-				| sed -e "1,/^${updated}.${uzdir}$/d ; /^${timestamp}$/,$d" \
+				"/${uzdir}@.*_i_@/p ; /^${supdated}.${uzdir}$/p ; /^${timestamp}$/p" \
+				| sed -e "1,/^${supdated}.${uzdir}$/d ; /^${timestamp}$/d" \
 				> ${tmpfileroot}.${uzdir}
 			now=`date +%Y-%m-%dT%T`
 			qecho "Looks like we have `wc -l ${tmpfileroot}.${uzdir}` new streams to apply.\n"
