@@ -178,16 +178,17 @@ do
 				| sed -e "1,/^${supdated}.${uzdir}$/d ; /^${timestamp}$/d" \
 				> ${tmpfileroot}.${uzdir}
 			now=`date +%Y-%m-%dT%T`
-			qecho "Looks like we have `wc -l ${tmpfileroot}.${uzdir}` new streams to apply.\n"
+			numstreams="`wc -l ${tmpfileroot}.${uzdir}`"
+			qecho "Looks like we have ${numstreams} new streams to apply.\n"
 			for fname in  `cat ${tmpfileroot}.${uzdir}`  ;
 			do
 				qecho "$fname is new\n"
 				if [ $logfile ] ; then
-					qecho "cat $fname | $ZFSR $szdir\n" >> $logfile
-					cat $fname | $ZFSR $szdir >> $logfile
+					qecho "cat ${streamdir}/${fname} | $ZFSR $szdir\n" >> $logfile
+					cat ${streamdir}/{fname} | $ZFSR $szdir >> $logfile
 				else
-					qecho "cat $fname | $ZFSR $szdir\n"
-					cat $fname | $ZFSR $szdir 
+					qecho "cat ${streamdir}/${fname}| $ZFSR $szdir\n"
+					cat ${streamdir}/${fname} | $ZFSR $szdir 
 				fi
 			done
 			# We update the timestamp (for this uzdir) with the time that we listed the
