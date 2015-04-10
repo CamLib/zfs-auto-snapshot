@@ -173,12 +173,12 @@ do
 			# The file list is sorted by date.  The first sed includes all lines
 			# with uzdir and also the two time stamps.  The second sed command
 			# includes only those lines between the two time stamps.
+			now=`date +%Y-%m-%dT%T`
 			ls -rt $streamdir | sed -n \
 				"/${uzdir}@.*_i_@/p ; /^${supdated}.${uzdir}$/p ; /^${timestamp}$/p" \
 				| sed -e "1,/^${supdated}.${uzdir}$/d ; /^${timestamp}$/d" \
 				> ${tmpfileroot}.${uzdir}
-			now=`date +%Y-%m-%dT%T`
-			numstreams="`wc -l ${tmpfileroot}.${uzdir}`"
+			numstreams="`cat ${tmpfileroot}.${uzdir} | wc -l`"
 			qecho "Looks like we have ${numstreams} new streams to apply.\n"
 			for fname in  `cat ${tmpfileroot}.${uzdir}`  ;
 			do
