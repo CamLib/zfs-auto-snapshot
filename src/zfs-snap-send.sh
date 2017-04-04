@@ -42,6 +42,7 @@ maxit=1000000
 archive=
 incremental=0
 sendall=0
+port=9090
 eqeq='==========\n'
 plpl='++++++++++\n'
 #
@@ -73,7 +74,7 @@ showusage() {
 verecho
 cat << EOF
 Usage: \
-        $sfn -rkzpdlsxquai
+        $sfn -rkzpdlsxquPai
         $sfn -h
         $sfn -v
         
@@ -90,6 +91,7 @@ Most flags require arguments.
         -A send all snapshots.  Use in conjunction with -p to prime the snaphost.
 		-d snaphost.  e.g. -d stor-snap-02
         -u username on snaphost.  Required for running remote end of mbuffer.
+        -P port.  Which port does mbuffer use on the snaphost?
         -a snaplevel. Send archive stream for snapshots at or below specified level.
         -i send incremental stream.
         -l Logfile. e.g. -l /var/log/zfssnapsend.log
@@ -262,10 +264,10 @@ send_snap() {
 			fn=${uzdir}${lastsnap}_I_${sn2s}_${snaptype}
 			qecho "Send stream will go to $fn\n"
 			# We sleep 5 seconds to allow the receive mbuffer to start on $snaphost
-			( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -H -s 128k -m 1G -O ${snaphost}:9090 ) &
+			( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -H -s 128k -m 1G -O ${snaphost}:${port} ) &
 			# Start the receive mbuffer on $snaphost
 			qecho "Starting receive on $snaphost.\n"
-			$SSH $ruser "mbuffer -q -H -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " 
+			$SSH $ruser "mbuffer -q -H -s128k -m 1G -4 -I ${port} -o $snapdir/$fn " 
 		fi
 	fi
 	#
@@ -287,10 +289,10 @@ send_snap() {
 			fn=${uzdir}${lastsnap}_i_${sn2s}_${snaptype}
 			qecho "Send stream will go to $fn\n"
 			# We sleep 5 seconds to allow the receive mbuffer to start on $snaphost
-			( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -H -s 128k -m 1G -O ${snaphost}:9090 ) &
+			( sleep 5 ;	$ZFS send -R -i $lastsnap $snapn | mbuffer -q -H -s 128k -m 1G -O ${snaphost}:${port} ) &
 			# Start the receive mbuffer on $snaphost
 			qecho "Starting receive on $snaphost.\n"
-			$SSH $ruser "mbuffer -q -H -s128k -m 1G -4 -I 9090 -o $snapdir/$fn " 
+			$SSH $ruser "mbuffer -q -H -s128k -m 1G -4 -I ${port} -o $snapdir/$fn " 
 		fi
 	fi
 
@@ -313,6 +315,7 @@ do
         s)      sleeptime=$OPTARG;;
         x)      maxit=$OPTARG;;
 		a)		archive=$OPTARG;;
+		P)		port=$OPTARG;;
 		i)		incremental=1;;
 		A)		sendall=1;;
         v)		verb=1;;
@@ -361,6 +364,7 @@ qecho "updated: \t$updated\n"
 qecho "zroot:   \t$zroot\n"
 qecho "backupuser: \t$backupuser\n"
 qecho "ruser: \t$ruser\n"
+qecho "port: \t$port\n"
 qecho "archive: \t$archive\n"
 qecho "incremental: \t$incremental\n"
 qecho "sendall: \t$sendall\n"
