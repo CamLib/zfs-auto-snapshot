@@ -303,7 +303,7 @@ send_snap() {
 #
 # Parse command line arguments
 #
-while getopts r:z:p:l:s:x:d:k:a:vVhqiA c
+while getopts r:z:p:l:s:x:d:k:a:P:vVhqiA c
 do
         case $c in
         l)      logfile=$OPTARG;;
