@@ -220,11 +220,11 @@ do
 					> ${tmpfileroot}.${uzdir}
 				# Find the starting snapshot.  This should be the one our oldest monthly
 				# originates from.
-				f1=`cat ${tmpfileroot}.${uzdir} | head -1 | sed -e "s/^${sn}@\(zfs-auto-snap.*\)${sep}.*/\1/"`
+				f1=`cat ${tmpfileroot}.${uzdir} | head -1 | sed -e "s/.*${uzdir}@\(zfs-auto-snap.*\)${sep}.*/\1/"`
 				while [ ! -z "$f1" ] ; 
 				do
-					fname=`cat ${tmpfileroot}.${uzdir} | sed -n  /^${sn}\@${f1}_I_/p |tail -1`
-					f1=`cat ${tmpfileroot}.${uzdir} | sed -n  /^${sn}\@${f1}_I_/p |tail -1 |  sed -e 's/.*_I_@\(zfs-auto-snap_.*\)_.*/\1/'` ;     
+					fname=`cat ${tmpfileroot}.${uzdir} | sed -n  /^.*${uzdir}\@${f1}_I_/p |tail -1`
+					f1=`cat ${tmpfileroot}.${uzdir} | sed -n  /^.*${uzdir}\@${f1}_I_/p |tail -1 |  sed -e 's/.*_I_@\(zfs-auto-snap_.*\)_.*/\1/'` ;     
 					qecho "Attempting to use $fname to bring us up to $f1\n"
 					qecho "cat ${streamdir}/${fname} | $ZFSR $szdir\n" 
 					if [ $logfile ] ; then
