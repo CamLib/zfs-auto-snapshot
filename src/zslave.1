@@ -11,7 +11,7 @@ zslave \-  Watch for and restore zfs send streams from a remote machine.
 
 .SH SYNOPSIS
 .B zslave
-.RB [ " \-rzlsxkqhv " ]
+.RB [ " \-rzlsxkICqhv " ]
 
 .SH DESCRIPTION
 .P
@@ -42,6 +42,12 @@ The time that zslave sleeps between iterations.
 .B \-x maxit. e.g. \-x 240
 Number of iterations to perform before exiting.
 .TP
+.B \-I use archive streams 
+This uses the archive separator (_I_) instead of the default of incrementals (_i_).
+.TP
+.B \-C catchup mode.  
+Works through monthly, weekly then daily.  Use with \-I.
+.TP
 .B \-q
 Quiet mode.  No comments or progress reports are echoed, except in the case
 of errors.
@@ -54,15 +60,32 @@ Displays version information and exits.
 .TP
 .B \-h
 Displays usage information and exits.
-
-.SH EXAMPLES .P  Monitor the /tmpbackup1 directory for zfs systems 
+.SH EXAMPLES 
+.P  
+Monitor the /tmpbackup1 directory for zfs systems 
 vbox, dbdata2 and  dblog2, logging to /var/tmp/zfsrestore.log, restoring to
-zbackup/clones/vbox, zbackup/clones/dbdata and zbackup/clones/dblog
-
+zbackup/clones/vbox, zbackup/clones/dbdata and zbackup/clones/dblog.
+.PP
 .RS
 zslave -r /tmpbackup1 -z vbox -z dbdata2 -z dblog2 \\ 
 .br
+.RS
 -k koala -l /var/tmp/zfsrestore.log -p zbackup/clones/
+.RE
+.RE
+.P 
+Catchup everything since 15:32:16 on 15 March 2017 for the owncloud file system.
+.PP
+.RS
+touch -d /mnt/stor-snap-02/stor-pri-02/2017-03-15T15:32:16 stor-bkp-01.owncloud
+.br
+zslave -r /mnt/stor-snap-02/stor-pri-02 \\
+.br
+.RS
+-p stor-bkp-01/stor-pri-02/ -s 10 -x 1 \\
+.br
+-l /var/log/zslave.owncloud.log -z owncloud -q -I -C 
+.RE
 .RE
 
 .SH FILES
