@@ -34,6 +34,7 @@ maxit=10000000
 eqeq='==========\n'
 plpl='++++++++++\n'
 sep='_i_'
+csep='_I_'
 stamponexit=0
 catchup=0
 
@@ -78,7 +79,7 @@ Most flags require arguments.
 	-p root zfs filesystem e.g. zbackup/clones/
 	-l Logfile. e.g. -l /var/tmp/zfsrestore.log
 	-I use archive streams (_I_) instead of the default of incrementals (_i_).
-	-C catchup mode.  Works through monthly, weekly then daily.  Use with -I.
+	-C catchup mode.  Works through monthly, weekly then daily.  
 	-s Loop sleep time, in seconds. e.g. -s 600
 	-x Maximum number of iterations. e.g. -x 5
 	-q Quiet 
@@ -98,13 +99,14 @@ dblog2, logging to /var/tmp/zfsrestore.log
 	$sfn -r /tmpbackup1 -z vbox -z dbdata2 -z dblog2 -l \\
 		/var/tmp/zfsrestore.log
 
-Catchup everything since 15:32:16 on 15 March 2017 for the owncloud file system.
+Catchup everything since 15:32:16 on 15 March 2017 for the owncloud file system, 
+and then continue until five iterations have been completed.
 
 	touch -d 2017-03-15T15:32:16 stor-bkp-01.owncloud
 	$sfn -r /mnt/stor-snap-02/stor-pri-02 \\
-		-p stor-bkp-01/stor-pri-02/ -s 10 -x 1 \\
+		-p stor-bkp-01/stor-pri-02/ -s 10 -x 5 \\
 		-l /var/log/zslave.owncloud.log -z owncloud -q	\\
-		-I -C 
+		-C 
 
 EOF
 
@@ -214,17 +216,18 @@ do
 				# Catchup mode. Snapshots processed in greedy mode, monthly then weekly then daily.
 				# We sort the streams at the end to ensure date order by name, rather than file modified.
 				# The two are usually, but not always, the same.
+				# In catchup mode, we always use csep, which is normally _I_.
 				ls -rt $streamdir | sed -n \
-					"/${uzdir}@.*${sep}@/p ; /^${supdated}.${uzdir}$/p ; /^${timestamp}$/p" \
+					"/${uzdir}@.*${csep}@/p ; /^${supdated}.${uzdir}$/p ; /^${timestamp}$/p" \
 					| sed -e "1,/^${supdated}.${uzdir}$/d ; /^${timestamp}$/d" | sort \
 					> ${tmpfileroot}.${uzdir}
 				# Find the starting snapshot.  This should be the one our oldest monthly
 				# originates from.
-				f1=`cat ${tmpfileroot}.${uzdir} | head -1 | sed -e "s/.*${uzdir}@\(zfs-auto-snap.*\)${sep}.*/\1/"`
-				fname=`cat ${tmpfileroot}.${uzdir} | sed -n  /^.*${uzdir}\@${f1}_I_/p |tail -1`
+				f1=`cat ${tmpfileroot}.${uzdir} | head -1 | sed -e "s/.*${uzdir}@\(zfs-auto-snap.*\)${csep}.*/\1/"`
+				fname=`cat ${tmpfileroot}.${uzdir} | sed -n  /^.*${uzdir}\@${f1}${csep}/p |tail -1`
 				while [ ! -z "$fname" ] ; 
 				do
-					f1=`cat ${tmpfileroot}.${uzdir} | sed -n  /^.*${uzdir}\@${f1}_I_/p |tail -1 |  sed -e 's/.*_I_@\(zfs-auto-snap_.*\)_.*/\1/'` ;     
+					f1=`cat ${tmpfileroot}.${uzdir} | sed -n  /^.*${uzdir}\@${f1}${csep}/p |tail -1 |  sed -e 's/.*${csep}@\(zfs-auto-snap_.*\)_.*/\1/'` ;     
 					qecho "Attempting to use $fname to bring us up to $f1\n"
 					qecho "cat ${streamdir}/${fname} | $ZFSR $szdir\n" 
 					if [ $logfile ] ; then
@@ -235,7 +238,7 @@ do
 					# We set the timestamp to be one second after the last modified time of the 
 					# final stream.
 					now=$(date -r $((`ls -lD %s  ${streamdir}/${fname} | sed -e 's/ [ ]/ /g' | cut -f6 -d' '` + 1)) +%Y-%m-%dT%T)
-					fname=`cat ${tmpfileroot}.${uzdir} | sed -n  /^.*${uzdir}\@${f1}_I_/p |tail -1`
+					fname=`cat ${tmpfileroot}.${uzdir} | sed -n  /^.*${uzdir}\@${f1}${csep}/p |tail -1`
 				done
 
 			fi
@@ -249,6 +252,11 @@ do
 			qecho "`$DATE`: Nothing to do for ${zdir}.\n"
 		fi
 	done
+	if [[ $catchup -eq 1 ]];
+	then
+		catchup=0;
+		qecho "Catchup is now $catchup.\nFurther iterations will use separator of $sep.\n"
+	fi
 	qecho "$eqeq`$DATE`: End of iteration $k of $maxit.  Sleeping for $sleeptime.\n\n"
 	sleep $sleeptime
 	k=$(($k+1))

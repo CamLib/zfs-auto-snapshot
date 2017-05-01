@@ -46,7 +46,7 @@ Number of iterations to perform before exiting.
 This uses the archive separator (_I_) instead of the default of incrementals (_i_).
 .TP
 .B \-C catchup mode.  
-Works through monthly, weekly then daily.  Use with \-I.
+Works through monthly, weekly then daily. 
 .TP
 .B \-q
 Quiet mode.  No comments or progress reports are echoed, except in the case
@@ -82,7 +82,7 @@ touch -d /mnt/stor-snap-02/stor-pri-02/2017-03-15T15:32:16 stor-bkp-01.owncloud
 zslave -r /mnt/stor-snap-02/stor-pri-02 \\
 .br
 .RS
--p stor-bkp-01/stor-pri-02/ -s 10 -x 1 \\
+-p stor-bkp-01/stor-pri-02/ -s 10 -x 5 \\
 .br
 -l /var/log/zslave.owncloud.log -z owncloud -q -I -C 
 .RE
