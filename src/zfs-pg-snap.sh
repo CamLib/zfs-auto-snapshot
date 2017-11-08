@@ -167,7 +167,7 @@ else
 	qecho "sudo -u $pguser " 'psql -c "select pg_start_backup('zfs-pg-snap');"\n'
 	qecho `sudo -u $pguser psql -c "select pg_start_backup('zfs-pg-snap');"` "\n"
 	qecho "$ZFSAUTOSNAP -l $label -k $keep $datafs\n"
-	ZFSAUTOSNAP -l $label -k $keep $datafs
+	$ZFSAUTOSNAP -l $label -k $keep $datafs
 	qecho "sudo -u $pguser " 'psql -c "select pg_stop_backup();"\n'
 	qecho `sudo -u $pguser psql -c "select pg_stop_backup();"`
 	qecho "$ZFSAUTOSNAP -l $label -k $keep $archivefs\n"
