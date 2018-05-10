@@ -62,8 +62,9 @@ Usage: \
 Most flags require arguments.
         
         -l snapshot label, e.g. frequent, hourly, daily, weekly, monthly.
-		-k Keep NUM recent snapshots and destroy older snapshots.
-        -d PostgreSQL data zfs file system
+        -k Keep NUM recent snapshots and destroy older snapshots.
+        -d PostgreSQL data zfs file system.  The -d argument may be specified 
+        multiple times for multiple tablespaces.
         -a PostgreSQL archive zfs file system
         -u username for the postgres user.  Default is postgres.
         -o logfile
@@ -106,12 +107,12 @@ do
         case $c in
         l)      label=$OPTARG;;
         k)      keep=$OPTARG;;
-        d)      datafs=$OPTARG;;
+        d)      datafs="$datafs$OPTARG ";;
         a)      archivefs=$OPTARG;;
-		u)		pguser=$OPTARG;;
-		o)		logfile=$OPTARG;;
-		n)		dryrun=1;;
-        v)		verb=1;;
+        u)      pguser=$OPTARG;;
+        o)      logfile=$OPTARG;;
+        n)      dryrun=1;;
+        v)      verb=1;;
         V)      
                 verb=1
                 verecho
