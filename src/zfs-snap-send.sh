@@ -172,7 +172,7 @@ find_previous_archive() {
 		weekly)		sf='/weekly$/p ; /monthly$/p ; /@Initial/p';;
 		monthly)	sf='/monthly$/p ; /@Initial/p';;	
 	esac
-	lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zn \
+	lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -d1 -r $zn \
 		| sed -n "/Initial/,/$sn2/p" | sed -e "/$sn2/d" | sed -n "$sf" | tail -1 \
 		| cut -f 1 -w | sed -e 's/.*@/@/' `
 }
@@ -198,7 +198,7 @@ find_previous_incremental() {
 	snaptype=`$ZFS list -o com.sun:auto-snapshot-label -H $sn`
 	if [ $incremental -gt 0 ] ; then
 		sf='/frequent$/p ; /hourly$/p ; /daily$/p ; /weekly$/p ; /monthly$/p ; /@Initial/p'
-		lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zn \
+		lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -d1  -r $zn \
 			| sed -n "/Initial/,/$sn2/p" | sed -e "/$sn2/d" | sed -n "$sf" | tail -1 \
 			| cut -f 1 -w | sed -e 's/.*@/@/' `
 	else
@@ -216,7 +216,7 @@ find_previous_incremental() {
 find_unsent() {
 	# zd1 should be a simple zfs filesystem name, e.g. x1/tsdspace
 	zd1=$1
-	unsent=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zd1 \
+	unsent=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -d1 -r $zd1 \
 	| sed -n '/timestamp$/,/timestamp$/p' | sed -e '/timestamp$/d ; /-$/d' | cut -f 1 -w `
 }
 
@@ -228,7 +228,7 @@ find_unsent() {
 find_all_unsent() {
 	# zd1 should be a simple zfs filesystem name, e.g. x1/tsdspace
 	zd1=$1
-	unsent=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -r $zd1 \
+	unsent=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label -H -d1 -r $zd1 \
 	| sed -e '/timestamp$/d ; /-$/d' | cut -f 1 -w `
 }
 

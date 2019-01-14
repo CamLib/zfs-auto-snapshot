@@ -117,7 +117,7 @@ if [[ $resume -eq 0 ]] ; then
 	for fname in $flist ; do
 		qecho "Attempting to restore using ${fname}"
 		$SSH ${ruser} "ls -lh ${snappath}/${fname}"
-		$ZFS list -tsnapshot -r ${ffsn} 
+		$ZFS list -tsnapshot -d1 -r ${ffsn} 
 		sleep 5
 		( $SSH ${ruser} "sleep 5 ; cat ${snappath}/${fname} | mbuffer -q -H -s 128k -m 1G -O ${thishost}:${port}" ) &
 		mbuffer -q -H -s 128k -m 1G -4 -I ${port} | $ZFS receive -v ${ffsn} 
@@ -126,26 +126,26 @@ if [[ $resume -eq 0 ]] ; then
 else
 	# Resuming.  Try and pick up from where we are.
 	lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label \
-		-s creation -r ${ffsn} | \
+		-s creation -d1 -r ${ffsn} | \
 		sed -n '/Initial/p ; /monthly/p' | tail -1 | \
 		sed -e 's/.*@\(.*\) .*/\1/ ; s/ //g' `
 	qecho "Attempting to resume.  \nLast snapshot for ${ffsn} is ${lastsnap}.\n"
 	$SSH ${ruser} "ls ${snappath}" > ${fn} 
-	flist=`cat ${fn} | sed -n "/${fsn}.*monthly/p ;/${fsn}.*Initial$/p"`
+	flist=`cat ${fn} | sed -n "/${fsn}\@.*monthly/p ;/${fsn}\@.*Initial$/p"`
 	qecho "The long flist is \n${flist} \n\n\n"
 	if ( ! $ZFS list ${ffsn} > /dev/null 2>&1 ) ; then
 		qecho "Zfs file system ${ffsn} does not already exist.  No problem...\n"
 		qecho "We will use the long list as the short one.\n"
 		sflist=${flist}
 	else
-		sflist=`cat ${fn} | sed -n "/${fsn}.*monthly/p ;/${fsn}.*Initial$/p" | sed -n "/${lastsnap}_I_/,$$p"`
+		sflist=`cat ${fn} | sed -n "/${fsn}\@.*monthly/p ;/${fsn}\@.*Initial$/p" | sed -n "/${lastsnap}_I_/,$$p"`
 	fi
 	qecho "The (shorter) sflist is \n${sflist} \n\n\n"
 	qecho "Beginning to process restores for the sflist at `$DATE`.\n"
 	for fname in $sflist ; do
 		qecho "Attempting to restore using ${fname} at `$DATE`.\n"
 		qecho "We are currently here:\n"
-		$ZFS list -tsnapshot -r ${ffsn} | tail -2
+		$ZFS list -tsnapshot -d1 -r ${ffsn} | tail -2
 		$SSH ${ruser} "ls -lh ${snappath}/${fname}"
 
 		sleep 2
