@@ -23,6 +23,8 @@ fsn=
 fn=/tmp/zfsr.txt
 snappath=/stor-snap-01/stor-pri-02
 resume=0
+weekly=0
+daily=0
 #
 # qecho Echoes argument if verbose mode is on.
 # Also writes to logfile.
@@ -52,7 +54,7 @@ showusage() {
 verecho
 cat << EOF
 Usage: \
-	$sfn -fpzr
+	$sfn -fpzrwd
 	$sfn -h
 	$sfn -v
         
@@ -62,6 +64,10 @@ Most flags require arguments.
 	-p port for remote (mbuffer) communication
 	-z zroot the (local) root zfs file system for the restore
 	-r resume.  Pick up from the last good monthly snapshot.
+	-w weekly. Restore down to the weekly level, from the last monthly.
+	   Implies -r.
+	-d daily.  Restore down to the daily level, from the last weekly.
+	   Implies -r and -w.
 
 EOF
 }
@@ -69,13 +75,20 @@ EOF
 #
 # Parse command line arguments
 #
-while getopts f:p:z:rv c
+while getopts f:p:z:rwdv c
 do
 	case $c in
 	f)	fsn=$OPTARG;;
 	p)	port=$OPTARG;;
 	z)	zroot=$OPTARG;;
 	r)	resume=1;;
+	w)	
+		resume=1
+		weekly=1;;
+	d)	
+		resume=1
+		weekly=1
+		daily=1;;
 	v)	verb=1;;
 	\?)     
 		verb=1
@@ -155,6 +168,76 @@ else
 		qecho "Finished restoring from ${fname} at `$DATE`.\n"
 	done
 	qecho "Finished processing all restores for the sflist at `$DATE`.\n"
+	if [[ $weekly -eq 1 ]] ; then 
+		# Resuming including weekly.  Try and pick up from where we are.
+		lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label \
+			-s creation -d1 -r ${ffsn} | \
+			sed -n '/Initial/p ; /monthly/p' | tail -1 | \
+			sed -e 's/.*@\(.*\) .*/\1/ ; s/ //g' `
+		qecho "Attempting to resume to weekly level.  \nLast snapshot for ${ffsn} is ${lastsnap}.\n"
+		$SSH ${ruser} "ls ${snappath}" > ${fn} 
+		flist=`cat ${fn} | sed -n \
+			"/${fsn}\@.*monthly/p ;/${fsn}\@.*Initial$/p ; /${fsn}\@.*weekly/p"`
+		qecho "The long flist is \n${flist} \n\n\n"
+		if ( ! $ZFS list ${ffsn} > /dev/null 2>&1 ) ; then
+			qecho "Zfs file system ${ffsn} does not already exist.  Exiting now.\n"
+			exit 4
+		fi
+		sflist=`cat ${fn} | sed -n \
+			"/${fsn}\@.*monthly/p ;/${fsn}\@.*Initial$/p; /${fsn}\@.*weekly/p" \
+			| sed -n "/${lastsnap}_I_/,$$p"`
+		qecho "The (shorter) sflist is \n${sflist} \n\n\n"
+		qecho "Beginning to process restores for the sflist at `$DATE`.\n"
+		for fname in $sflist ; do
+			qecho "Attempting to restore using ${fname} at `$DATE`.\n"
+			qecho "We are currently here:\n"
+			$ZFS list -tsnapshot -d1 -r ${ffsn} | tail -2
+			$SSH ${ruser} "ls -lh ${snappath}/${fname}"
+
+			sleep 2
+			( $SSH ${ruser} "sleep 5 ; cat ${snappath}/${fname} | mbuffer -q -H -s 128k -m 1G -O ${thishost}:${port}" ) &
+			mbuffer -q -H -s 128k -m 1G -4 -I ${port} | $ZFS receive -v ${ffsn} 
+			sleep 5
+			qecho "Finished restoring from ${fname} at `$DATE`.\n"
+		done
+		qecho "Finished processing all restores for the sflist at `$DATE`.\n"
+		if [[ $daily -eq 1 ]] ; then 
+			# Resuming including daily.  Try and pick up from where we are.
+			lastsnap=`$ZFS list -t snapshot -o name,com.sun:auto-snapshot-label \
+				-s creation -d1 -r ${ffsn} | \
+				sed -n '/Initial/p ; /monthly/p /daily/p' | tail -1 | \
+				sed -e 's/.*@\(.*\) .*/\1/ ; s/ //g' `
+			qecho "Attempting to resume to daily level.  \nLast snapshot for ${ffsn} is ${lastsnap}.\n"
+			$SSH ${ruser} "ls ${snappath}" > ${fn} 
+			flist=`cat ${fn} | sed -n \
+				"/${fsn}\@.*monthly/p ;/${fsn}\@.*Initial$/p ; /${fsn}\@.*weekly/p ; /${fsn}\@.*daily/p"`
+			qecho "The long flist is \n${flist} \n\n\n"
+			if ( ! $ZFS list ${ffsn} > /dev/null 2>&1 ) ; then
+				qecho "Zfs file system ${ffsn} does not already exist.  Exiting now.\n"
+				exit 4
+			fi
+			sflist=`cat ${fn} | sed -n \
+				"/${fsn}\@.*monthly/p ;/${fsn}\@.*Initial$/p; /${fsn}\@.*weekly/p ; /${fsn}\@.*daily/p" \
+				| sed -n "/${lastsnap}_I_/,$$p"`
+			qecho "The (shorter) sflist is \n${sflist} \n\n\n"
+			qecho "Beginning to process restores for the sflist at `$DATE`.\n"
+			for fname in $sflist ; do
+				qecho "Attempting to restore using ${fname} at `$DATE`.\n"
+				qecho "We are currently here:\n"
+				$ZFS list -tsnapshot -d1 -r ${ffsn} | tail -2
+				$SSH ${ruser} "ls -lh ${snappath}/${fname}"
+
+				sleep 2
+				( $SSH ${ruser} "sleep 5 ; cat ${snappath}/${fname} | mbuffer -q -H -s 128k -m 1G -O ${thishost}:${port}" ) &
+				mbuffer -q -H -s 128k -m 1G -4 -I ${port} | $ZFS receive -v ${ffsn} 
+				sleep 5
+				qecho "Finished restoring from ${fname} at `$DATE`.\n"
+			done
+			qecho "Finished processing all restores for the sflist at `$DATE`.\n"
+		fi
+	fi
+
 fi
+
 qecho "All finished at `$DATE`.\n"
 
